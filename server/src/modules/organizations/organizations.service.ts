@@ -55,7 +55,8 @@ export class OrganizationsService {
     if (!user.emailVerifiedAt) {
       throw new AppError(403, 'EMAIL_NOT_VERIFIED', 'Verify your email address before creating an organization');
     }
-    const owned = await MembershipModel.countDocuments({ userId: user._id, role: 'owner' });
+    const ownerships = await MembershipModel.find({ userId: user._id, role: 'owner' }).select({ orgId: 1 }).lean<Pick<Membership, 'orgId'>[]>();
+    const owned = await OrganizationModel.countDocuments({ _id: { $in: ownerships.map((m) => m.orgId) }, status: 'active' });
     if (owned >= this.maxOrgsPerUser) {
       throw AppError.forbidden(`You can own at most ${this.maxOrgsPerUser} organizations`);
     }

@@ -10,7 +10,9 @@
     "start": "node dist/server.js",
     "start:worker": "node dist/worker.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:indexes": "node --env-file-if-exists=../.env dist/scripts/createIndexes.js",
+    "db:indexes:dev": "tsx --env-file-if-exists=../.env src/scripts/createIndexes.ts"
   },
   "dependencies": {
     "@ledora/shared": "^0.1.0",

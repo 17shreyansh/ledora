@@ -61,6 +61,24 @@ describe('organizations', () => {
   });
 });
 
+describe('organization limit', () => {
+  let limited: TestEnv;
+  beforeAll(async () => {
+    await env.teardown();
+    limited = await setupTestEnv({ MAX_ORGS_PER_USER: '2' });
+    env = limited;
+  });
+
+  it('caps owned organizations but does not count deleted ones', async () => {
+    const { client } = await signUp(limited);
+    const first = await createOrg(client, 'One Co');
+    await createOrg(client, 'Two Co');
+    expect((await client.post('/orgs', { name: 'Three Co' })).status).toBe(403);
+    expect((await client.delete(`/orgs/${first.id}`, { confirmName: 'One Co' })).status).toBe(204);
+    expect((await client.post('/orgs', { name: 'Three Co' })).status).toBe(201);
+  });
+});
+
 describe('invitations', () => {
   it('runs the full invite → preview → accept flow', async () => {
     const owner = await signUp(env);
