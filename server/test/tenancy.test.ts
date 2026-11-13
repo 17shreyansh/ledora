@@ -88,5 +88,8 @@ describe('role-based access inside an organization', () => {
   it('cuts off access immediately when a member is removed', async () => {
     expect((await alice.client.delete(`/orgs/${orgA.id}/members/${viewer.userId}`)).status).toBe(204);
     expect((await viewer.client.get(`/orgs/${orgA.id}`)).status).toBe(404);
+    const log = await alice.client.get(`/orgs/${orgA.id}/audit-logs`);
+    const removed = log.body.items.find((i: { action: string }) => i.action === 'member.removed');
+    expect(removed.metadata).toMatchObject({ role: 'viewer', name: 'Vera' });
   });
 });

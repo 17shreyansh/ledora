@@ -75,6 +75,7 @@ export class MembersService {
         return toMemberDto(target, u!);
       }
 
+      const targetUser = await UserModel.findById(targetUserId).select({ name: 1, email: 1 }).session(session).lean<Pick<User, 'name' | 'email'>>();
       const updated = await MembershipModel.findOneAndUpdate(
         { _id: target._id },
         { $set: { role } },
@@ -87,13 +88,12 @@ export class MembersService {
           orgId: actor.orgId,
           actorId: actor.userId,
           target: { type: 'user', id: targetUserId },
-          metadata: { from: target.role, to: role },
+          metadata: { from: target.role, to: role, name: targetUser?.name ?? null },
           ip,
         },
         session,
       );
-      const u = await UserModel.findById(targetUserId).session(session).lean<User>();
-      return toMemberDto(updated!, u!);
+      return toMemberDto(updated!, targetUser!);
     });
   }
 
@@ -110,6 +110,7 @@ export class MembersService {
         if (!hasPermission(me.role, 'members.manage')) throw AppError.forbidden();
         if (!canManageMember(me.role, target.role)) throw AppError.forbidden('You cannot remove this member');
       }
+      const targetUser = await UserModel.findById(targetUserId).select({ name: 1 }).session(session).lean<Pick<User, 'name'>>();
       await MembershipModel.deleteOne({ _id: target._id }, { session });
       await assertOwnerRemains(actor.orgId, session);
       await this.audit.record(
@@ -118,7 +119,8 @@ export class MembersService {
           orgId: actor.orgId,
           actorId: actor.userId,
           target: { type: 'user', id: targetUserId },
-          metadata: { role: target.role },
+          // Name snapshot so the activity log stays readable after the person is gone.
+          metadata: { role: target.role, name: targetUser?.name ?? null },
           ip,
         },
         session,

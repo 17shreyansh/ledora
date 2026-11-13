@@ -75,7 +75,7 @@ export class InvitationsService {
         { session },
       );
       await this.audit.record(
-        { action: 'invitation.created', orgId: org._id, actorId: inviter._id, target: { type: 'invitation', id: created!._id }, metadata: { role: input.role }, ip },
+        { action: 'invitation.created', orgId: org._id, actorId: inviter._id, target: { type: 'invitation', id: created!._id }, metadata: { role: input.role, email: input.email }, ip },
         session,
       );
       return created!.toObject();
@@ -95,9 +95,19 @@ export class InvitationsService {
   }
 
   async revoke(orgId: Types.ObjectId, invitationId: Types.ObjectId, actorId: Types.ObjectId, ip: string | null): Promise<void> {
-    const res = await InvitationModel.updateOne({ _id: invitationId, orgId, status: 'pending' }, { $set: { status: 'revoked' } });
-    if (res.matchedCount === 0) throw AppError.notFound('Invitation not found');
-    await this.audit.record({ action: 'invitation.revoked', orgId, actorId, target: { type: 'invitation', id: invitationId }, ip });
+    const revoked = await InvitationModel.findOneAndUpdate(
+      { _id: invitationId, orgId, status: 'pending' },
+      { $set: { status: 'revoked' } },
+    ).lean<Invitation>();
+    if (!revoked) throw AppError.notFound('Invitation not found');
+    await this.audit.record({
+      action: 'invitation.revoked',
+      orgId,
+      actorId,
+      target: { type: 'invitation', id: invitationId },
+      metadata: { role: revoked.role, email: revoked.email },
+      ip,
+    });
   }
 
   private async findUsable(raw: string): Promise<{ invitation: Invitation; org: Organization }> {

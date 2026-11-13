@@ -40,7 +40,14 @@ export function createApp(deps: AppDeps): { app: Express; services: Services } {
   // ── Authenticated customer API ──
   const api = express.Router();
   api.use(helmet({ contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } } }));
-  api.use(cors({ origin: config.CORS_ORIGINS, credentials: true, maxAge: 600 }));
+  api.use(
+    cors({
+      origin: config.CORS_ORIGINS,
+      credentials: true,
+      maxAge: 600,
+      exposedHeaders: ['X-Request-Id', 'RateLimit', 'RateLimit-Policy', 'Retry-After'],
+    }),
+  );
   api.use(express.json({ limit: '100kb' }));
   api.use(cookieParser());
   api.use((_req, res, next) => {

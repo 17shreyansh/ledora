@@ -111,6 +111,8 @@ describe('invitations', () => {
     const inv = await owner.client.post(`/orgs/${org.id}/invitations`, { email, role: 'viewer' });
     const token = lastToken(env, email);
     expect((await owner.client.delete(`/orgs/${org.id}/invitations/${inv.body.id}`)).status).toBe(204);
+    const revoked = await AuditLogModel.findOne({ action: 'invitation.revoked', targetId: inv.body.id }).lean();
+    expect(revoked?.metadata).toMatchObject({ email, role: 'viewer' });
     const invitee = await signUp(env, { email });
     expect((await invitee.client.post('/invitations/accept', { token })).status).toBe(400);
   });
