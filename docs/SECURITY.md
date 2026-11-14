@@ -45,9 +45,25 @@ What is enforced today, and how. Planned controls are marked as such.
   request id (no secrets, no message bodies).
 - Email templates HTML-escape all user-supplied values (org names, people names).
 
+## Public ingestion (built, Phase 2)
+- Site keys are identifiers, not secrets; tests prove they open no private API.
+- `/public/v1` is mounted outside `/api/v1`: no cookie parsing, no session, CORS `*` without
+  credentials, so a customer page can never ride a Ledora user's session.
+- Origin must match the site's allowed domains (exact or `*.` wildcard, suffix-safe:
+  `example.com.evil.net` does not match). Origin is a browser signal and can be forged by
+  non-browser clients, so it is paired with per-IP and per-key rate limits, a 32 KB body cap,
+  ≤ 25 events per batch, strict per-event schemas and monthly quotas.
+- Page URLs must also be on an allowed domain. Stored data excludes IPs, raw user agents,
+  query strings (only `utm_*` kept) and fragments; referrers keep host + path only; search
+  terms and emails in URLs are therefore never stored (tested).
+- Bots (user-agent patterns, `automated` flag) are counted as rejected and not stored.
+- Rotating or deleting a site key takes effect immediately (cache invalidated).
+
+## Event outbox
+- Business events carry ids and small non-sensitive values only (tested: no emails).
+- Consumers de-duplicate by `(consumer, eventId)`; delivery is at-least-once.
+
 ## Planned controls
-- Public ingestion (Phase 2): site keys are identifiers, not secrets; per-key quotas, payload
-  schemas, size caps, domain allowlist + Origin checks (treated as a signal, never as auth).
 - SSRF protection for monitoring (Phase 7): resolve-then-connect with private/link-local/
   metadata range blocking on every redirect hop, port/protocol allowlist, size/time caps,
   plus egress firewall rules at the infrastructure level.

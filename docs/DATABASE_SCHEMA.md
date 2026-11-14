@@ -31,19 +31,32 @@ Used where several writes must be atomic: org creation (org + owner membership +
 slug change (alias + org + audit), role change / removal / invitation acceptance
 (membership + `membershipVersion` bump + audit). Requires a replica set (Atlas or local `rs0`).
 
+## Built (Phase 2)
+
+| Collection | Purpose | Key fields | Indexes | Retention |
+| --- | --- | --- | --- | --- |
+| `plans` | Plan catalogue (limits, not prices) | `key`, `name`, `limits{websites,monthlyEvents,analyticsRetentionDays,teamMembers}`, `active` | `key` unique | Permanent; seeded only when missing |
+| `usageRecords` | Durable monthly usage | `orgId`, `period` (`YYYY-MM`, UTC), `events` | `{orgId,period}` unique | Permanent (small) |
+| `websites` | Sites per org | `orgId`, `name`, `domain`, `allowedDomains[≤20]`, `siteKey`, `tracking`, `installation{firstSeenAt,lastSeenAt,sdkVersion}`, `status` | `siteKey` unique · `{orgId,status,createdAt}` | Soft delete |
+| `analyticsEvents` | Raw SDK events (high volume) | `orgId`, `websiteId`, `eventId`, `type`, `name`, `ts`, `visitorId`, `sessionId`, `host`, `path`, `utm`, `referrerHost/Path`, `device{type,browser,os}`, `screen`, `lang`, `props`, `expiresAt` | `{websiteId,eventId}` unique (dedupe) · `{websiteId,ts}` · TTL on `expiresAt` | Plan retention, fixed per event at ingestion |
+| `outbox` | Business events awaiting relay | `eventId`, `type`, `version`, `orgId`, `websiteId`, `subject`, `data` (ids only), `lockedUntil`, `relayedAt` | `eventId` unique · `{relayedAt,_id}` · TTL on `expiresAt` | 7 days after relay |
+| `eventReceipts` | Consumer de-duplication | `consumer`, `eventId` | `{consumer,eventId}` unique · TTL 400 days | 400 days |
+
+`organizations` gained `planKey` (default `free`), `limitOverrides` and `resourceVersion` (serializes limit-checked creates, same technique as `membershipVersion`).
+
+Monthly event quota: a Redis counter per org-month reserves events atomically before insert and is warmed from `usageRecords` if Redis loses it; `usageRecords` is incremented by the number actually stored.
+
 ## Planned (designed, not built)
 
 Bounded documents only; high-volume data in its own collections with TTL or rollups.
 
 | Collection | Phase | Notes |
 | --- | --- | --- |
-| `websites` | 2 | `orgId`, public `siteKey` (unique), `allowedDomains[]` (bounded, ≤ 20) |
-| `analyticsEvents` / `analyticsSessions` / daily rollups | 2–3 | Time-ordered, `{websiteId, ts}` indexes, TTL on raw events; repository interface for later ClickHouse |
+| `analyticsSessions` / daily rollups | 3 | Derived from `analyticsEvents`; repository interface for later ClickHouse |
 | `forms` / `formVersions` / `submissions` | 4 | Immutable published versions; submissions independent, cursor-paginated |
 | `leads` | 4 | Dedupe by auditable rule (exact normalized email per org by default) |
 | `chatbotFlows` / `chatbotFlowVersions` / `faqEntries` | 5 | Conversations pin the flow version they started on |
 | `conversations` / `messages` | 6 | Messages never embedded; client message ids for dedupe |
 | `monitors` / `monitoringChecks` / `incidents` | 7 | Checks time-series with TTL; incidents with lifecycle |
 | `notifications`, `automationRules`, `automationExecutions` | 7–8 | Execution history with idempotency keys |
-| `plans`, `subscriptions`, `usageRecords`, `featureFlags` | 9 | Entitlements separate from flags |
-| `outbox`, `eventReceipts` | 2 | Part 32.1 event pipeline |
+| `subscriptions`, `featureFlags` | 9 | Entitlements separate from flags |

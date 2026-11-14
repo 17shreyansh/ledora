@@ -72,4 +72,37 @@ owner returns `409 LAST_OWNER`.
 | POST | `/invitations/preview` | none | `{token}` | `InvitationPreviewDto` |
 | POST | `/invitations/accept` | session, verified email matching the invitation | `{token}` | `{organization: OrganizationDto}` |
 
+## Plan usage
+
+| Method | Path | Permission | Success |
+| --- | --- | --- | --- |
+| GET | `/orgs/:orgId/usage` | `org.read` | `UsageDto` — plan, limits and current-month usage (websites, events, team members) |
+
+Limits are enforced server-side: `403 PLAN_LIMIT` (websites, team seats incl. pending invitations), `429 QUOTA_EXCEEDED` (monthly events on the public path).
+
+## Websites
+
+| Method | Path | Permission | Body | Success |
+| --- | --- | --- | --- | --- |
+| GET | `/orgs/:orgId/websites` | `websites.read` | — | `WebsiteDto[]` |
+| POST | `/orgs/:orgId/websites` | `websites.manage` | `{name, domain}` (URLs are normalized to a hostname) | `201 WebsiteDto`; allowed domains default to the domain and its `www.` counterpart |
+| GET | `/orgs/:orgId/websites/:id` | `websites.read` | — | `WebsiteDto` |
+| GET | `/orgs/:orgId/websites/:id/stats` | `websites.read` | — | `WebsiteStatsDto` (events/pageviews in the last 24 h, last event) |
+| PATCH | `/orgs/:orgId/websites/:id` | `websites.manage` | `{name?, allowedDomains? (1–20, *.wildcards), tracking?: {consentRequired?, respectDoNotTrack?}}` | `WebsiteDto` |
+| POST | `/orgs/:orgId/websites/:id/rotate-key` | `websites.manage` | — | `WebsiteDto` (old key stops working immediately) |
+| DELETE | `/orgs/:orgId/websites/:id` | `websites.manage` | `{confirmName}` | `204` (soft delete; key stops working) |
+
+`installation.status` becomes `verified` only when the server stores a real SDK event from an allowed domain.
+
+## Public SDK surface — `/public/v1` (no cookies, `Access-Control-Allow-Origin: *`, never credentials)
+
+| Method | Path | Body | Success | Errors |
+| --- | --- | --- | --- | --- |
+| GET | `/public/v1/sites/:siteKey/config` | — | `PublicSiteConfig` (cached 60 s) | 404 unknown key |
+| POST | `/public/v1/collect` | `IngestBatch` as JSON, `Content-Type: text/plain` (no preflight) | `202 IngestResponse {accepted, duplicates, rejected}` | 400 invalid batch · 403 unknown key / origin not allowed · 413 > 32 KB · 429 rate limit or `QUOTA_EXCEEDED` |
+
+Contract: `packages/shared/src/ingest-contract.ts`. Each event is validated on its own; invalid events are counted in `rejected` without failing the batch. Event ids de-duplicate retries. Bot user agents and `automated: true` batches are accepted but not stored.
+
+SDK files: `GET /sdk/v1/widget.js` (5-minute cache) and `/sdk/v1/widget.<hash>.js` (immutable), served as the CDN origin.
+
 An OpenAPI document is planned (see `KNOWN_ISSUES.md`).

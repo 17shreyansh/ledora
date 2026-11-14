@@ -10,7 +10,7 @@ Status legend: **Built** = implemented and tested · **Planned** = designed, not
 | `app.ledora.com` | Customer application (`apps/web`) | Built (Phase 1 scope) |
 | `admin.ledora.com` | Internal administration (`apps/admin`) | Planned (Phase 9) |
 | `api.ledora.com` | REST API `/api/v1` + Socket.IO (`server`) | Built (Phase 1 scope) |
-| `cdn.ledora.com` | SDK and static assets; origin = object storage, edge = Cloudflare | Planned (Phase 2) |
+| `cdn.ledora.com` | SDK and static assets; origin = API `/sdk` (or object storage), edge = Cloudflare | Built (origin) |
 
 ```
 Browser (app.ledora.com) ──HTTPS, cookie──▶ Cloudflare ─▶ Nginx ─▶ API processes (PM2 cluster)
@@ -72,18 +72,28 @@ created once in `services/container.ts`.
 
 | Queue | Producer | Consumer | Retry | Status |
 | --- | --- | --- | --- | --- |
-| `email` | auth, invitations | `workers/email.worker.ts` | 6 attempts, exponential from 5 s; failed jobs kept 14 days | Built |
+| `email` | auth, invitations, event consumers | `workers/email.worker.ts` | 6 attempts, exponential from 5 s; failed jobs kept 14 days | Built |
+| `events-<consumer>` | outbox relay (worker) | `modules/events/consumers.ts` (`onboarding-notifications`) | 8 attempts, exponential from 2 s; receipts dedupe | Built |
 | analytics, monitoring, notifications, automation, exports, maintenance | — | — | — | Planned |
 
 Workers shut down gracefully (finish in-flight jobs, 30 s cap). The API closes its server,
 queues, Redis and Mongo on SIGTERM (15 s cap).
 
+## Built in Phase 2
+
+- **Public ingestion** (`modules/ingest`) on `/public/v1`, isolated from the cookie-authenticated
+  API. Site lookups are cached in Redis for 60 s and invalidated on edit/rotate/delete.
+- **Entitlements** (`modules/entitlements`): plans in MongoDB, per-org overrides, server-side checks
+  for websites, team seats and the monthly event quota.
+- **Event pipeline** (`modules/events`, ADR-012): `emitEvent(session, …)` writes to `outbox` inside
+  the business transaction; the worker's relay leases rows, publishes to one BullMQ queue per
+  subscribed consumer with `jobId = eventId`, and marks them relayed. Consumers run through
+  `processWithReceipt`. First consumer: `onboarding-notifications` emails owners/admins when a
+  website's installation is first verified.
+
 ## Planned foundations (Part 32)
 
-- **Event pipeline** — transactional outbox → per-consumer queues, `(consumer, eventId)` receipts
-  for idempotency, versioned event schemas in `packages/shared`, PII kept out of payloads. See ADR-012.
 - **Versioned publishing** — draft + immutable published snapshots for chatbot flows, FAQs, keyword
   rules, forms and widget config; validation gate before publish; rollback = re-point to an older snapshot.
-- **Entitlements vs feature flags** — plan entitlements and usage limits enforced server-side in
-  services; feature flags evaluated separately (rollout %, per-org grants).
+- **Feature flags** — evaluated separately from entitlements (rollout %, per-org grants), Phase 9.
 - **Analytics storage** behind a repository interface so high-volume events can move to ClickHouse later.

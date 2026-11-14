@@ -58,7 +58,27 @@ query parser never produces nested objects. A test sends `{"$ne": null}` credent
 Transactions, unique indexes and TTL behaviour are what we most need to verify, and mocks would
 hide them. Tests need a local replica-set `mongod` and Redis (see `TESTING.md`).
 
-## ADR-012 — Event architecture (Part 32.1) — planned
-Business events will be written to an `outbox` collection inside the same transaction as the
+## ADR-012 — Event architecture (Part 32.1)
+Built in Phase 2. Business events are written to an `outbox` collection inside the same transaction as the
 state change and relayed to per-consumer BullMQ queues; consumers dedupe on `(consumer, eventId)`.
-High-volume browser analytics use a separate ingestion path and collections. Not yet implemented.
+High-volume browser analytics use a separate ingestion path and collections. Implemented with one consumer; analytics events stay on the separate high-volume path.
+
+## ADR-013 — Public ingestion is a separate surface
+`/public/v1` sits outside `/api/v1` with its own CORS (`*`, no credentials) and no cookie or
+session middleware. The SDK posts `text/plain` JSON so browsers send no preflight. Origin
+allowlisting is a signal, not authentication; abuse is bounded by rate limits, size caps, schemas
+and quotas.
+
+## ADR-014 — Analytics events stay in MongoDB for now
+`analyticsEvents` is its own collection with a unique `{websiteId,eventId}` index for dedupe and a
+per-event TTL from the plan's retention. All access goes through the ingest/analytics services so
+a move to ClickHouse later touches one module. No second database until load justifies it.
+
+## ADR-015 — Event quota: Redis reservation + durable monthly record
+Events are reserved atomically in Redis (`INCRBY`, roll back the excess) before insert, then the
+stored count is added to `usageRecords`. If Redis loses the counter it is re-seeded from MongoDB.
+Duplicates and rejected events release their reservation.
+
+## ADR-016 — Plans live in the database
+Default plans are seeded with `$setOnInsert` (never overwriting edits). Limits change without a
+deploy; prices are not part of plans (billing is Phase 9).

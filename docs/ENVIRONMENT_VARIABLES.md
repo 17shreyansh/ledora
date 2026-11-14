@@ -23,6 +23,7 @@ variable *name* (never its value). Copy `.env.example` to `.env` for local devel
 | `MAIL_FROM` | no | `Ledora <no-reply@ledora.com>` | |
 | `AUDIT_RETENTION_DAYS` | no | `730` | 30–3650 |
 | `MAX_ORGS_PER_USER` | no | `25` | Organizations a user may own |
+| `SDK_DIST_DIR` | no | `sdk/dist` (resolved from the server package) | Built SDK served at `/sdk` as the CDN origin; skipped if missing |
 | `RATE_LIMIT_ENABLED` | no | `true` | Cannot be `false` in production |
 
 Web app (`apps/web`, build time): `VITE_API_URL` — API base including `/api/v1`
