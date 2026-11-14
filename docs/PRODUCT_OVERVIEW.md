@@ -17,5 +17,12 @@ its website: visitor analytics, chat and chatbot, lead-capture forms (embedded a
   role changes, removal, leaving, with an always-at-least-one-owner guarantee.
 - An activity (audit) log of security-relevant changes.
 
+## Added in Phase 2
+- Websites with a one-line install snippet, live installation verification and an email when the
+  first real visit arrives.
+- Privacy controls per website (consent mode, Do Not Track / GPC).
+- Plan usage: websites, monthly events and team seats, enforced by the server.
+- Pageview and custom-event collection (dashboards arrive in Phase 3).
+
 Everything else in the vision is on the roadmap (`DEVELOPMENT_ROADMAP.md`) and is not shown in
 the product until it works.

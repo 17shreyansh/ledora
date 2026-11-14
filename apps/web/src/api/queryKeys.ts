@@ -11,6 +11,10 @@ export const queryKeys = {
   members: (orgId: string) => ['orgs', orgId, 'members'] as const,
   invitations: (orgId: string) => ['orgs', orgId, 'invitations'] as const,
   auditLogs: (orgId: string) => ['orgs', orgId, 'audit-logs'] as const,
+  usage: (orgId: string) => ['orgs', orgId, 'usage'] as const,
+  websites: (orgId: string) => ['orgs', orgId, 'websites'] as const,
+  website: (orgId: string, websiteId: string) => ['orgs', orgId, 'websites', websiteId] as const,
+  websiteStats: (orgId: string, websiteId: string) => ['orgs', orgId, 'websites', websiteId, 'stats'] as const,
   invitationPreview: (token: string) => ['invitation-preview', token] as const,
   emailVerification: (token: string) => ['email-verification', token] as const,
 };

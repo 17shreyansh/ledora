@@ -1,6 +1,6 @@
 # Implementation Status
 
-Updated 2026-11-13. Legend: ✅ done and verified · 🟡 partial · ⬜ not started.
+Updated 2026-11-14. Legend: ✅ done and verified · 🟡 partial · ⬜ not started.
 
 ## Phase 0 — Audit ✅
 Greenfield; see `docs/PHASE0_AUDIT.md`.
@@ -36,6 +36,30 @@ role change in activity log → last-owner refusal → address change → passwo
 rotation → sign-out and protected-route redirect → mobile drawer; plus invalid links,
 forgot/reset password, foreign org id, server field errors, second org create/switch/delete.
 
-## Phases 2–10 ⬜
+## Phase 2 — Websites, SDK, ingestion ✅
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Websites: site keys, allowed domains (+ wildcards), privacy settings, rotate, delete | ✅ | `websites.test.ts` |
+| Plans in DB + per-org overrides; limits for websites, seats, monthly events, retention | ✅ | `websites.test.ts`, `organizations.test.ts`, `ingest.test.ts` (quota) |
+| Public `/public/v1` config + collect: origin allowlist, per-event validation, PII stripping, bot filter, dedupe, quotas | ✅ | `ingest.test.ts` (+ mutation checks) |
+| Site key cannot reach private APIs | ✅ | `ingest.test.ts` |
+| Installation verification from server-observed events | ✅ | `ingest.test.ts` + browser E2E |
+| Transactional outbox, relay, consumers with receipts; "receiving data" email | ✅ | `outbox.test.ts`, `ingest.test.ts`, browser E2E |
+| Browser SDK v1 (4.8 KB gzip, consent, DNT/GPC, SPA, batching, retries, beacon) | ✅ | 71 SDK tests |
+| SDK served as CDN origin (immutable hashed files, 5-min loader) | ✅ | E2E (headers checked) |
+| Web: websites list/add, install guide with live verification, settings, plan usage, getting-started steps | ✅ | 39 web tests, screenshots |
+
+**Verification run (2026-11-14):** lint clean · typecheck clean · shared 15, server 67, SDK 71,
+web 39 tests pass · production builds succeed · `npm audit --omit=dev` 0 vulnerabilities ·
+end-to-end with real processes: register → verify → create org → add website → a real page with the
+real snippet is visited in Chrome → SDK sends 2 pageviews + 1 custom event (one 202) → website
+flips to Verified → owner receives the "receiving data" email → usage shows 3 events → the app's
+Install tab shows Verified with real stats. A URL carrying `?utm_source=newsletter&email=x@y.com`
+was stored as path `/pricing` with `utm.source=newsletter` and no email anywhere.
+(The visitor browser ran with a normal user agent and the automation flag off; headless/automated
+traffic is filtered by design, which is itself covered by tests.)
+
+## Phases 3–10 ⬜
 See `docs/DEVELOPMENT_ROADMAP.md`. Nothing in these phases is implemented, and the app does not
 show navigation for them.

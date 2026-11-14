@@ -34,6 +34,11 @@ Redis DB 15 is flushed per file. Files run sequentially because rate-limit count
 
 The concurrency test was validated by mutation: removing the membership-version bump makes it fail.
 
+| `server/test/websites.test.ts` | Site keys, allowed-domain validation, limit incl. concurrent creates, analysts read-only, cross-tenant 404s |
+| `server/test/ingest.test.ts` | Public config is non-sensitive; site key opens no private API; origin allowlist (incl. suffix attacks); per-event validation; 413; dedupe; skew clamp; bots; rotate/delete stop ingestion; PII stripped; verification emits one outbox event; consumer sends once; monthly quota |
+| `server/test/outbox.test.ts` | Rolled-back transactions publish nothing; relay publishes once with jobId = eventId; re-relay after crash is a no-op; leased rows skipped |
+| `sdk/test/*` (71) | Init safety, duplicate load, consent/DNT/GPC, ids and sessions, SPA pageviews, batching, retries/backoff, 400/403/413/429 handling, beacon, output validated against the server's Zod schemas |
+
 ## Browser end-to-end
 A Playwright run against the real API, worker, MongoDB and Redis was executed for Phase 1 (flows listed in `IMPLEMENTATION_STATUS.md`). It is not yet automated in CI (`KNOWN_ISSUES.md` #7). Note that sign-up is rate-limited to 10/hour per IP; clear `rl:*` keys in a dev Redis between repeated runs.
 

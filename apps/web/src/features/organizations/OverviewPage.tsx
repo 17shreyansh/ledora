@@ -10,6 +10,7 @@ import { useMemo, type ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router';
 import { useSession } from '../../api/auth';
 import { useAuditLogs, useInvitations, useMembers } from '../../api/organizations';
+import { useWebsites } from '../../api/websites';
 import { ApiErrorAlert } from '../../components/ApiErrorAlert';
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
@@ -21,6 +22,7 @@ import { timeZoneLabel } from '../../lib/timezones';
 import { ActivityItem } from '../activity/ActivityItem';
 import { useAuditContext } from '../activity/useAuditContext';
 import { useCurrentOrg } from './OrgContext';
+import { PlanUsageCard } from './PlanUsageCard';
 import { visuallyHidden } from '../../lib/a11y';
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
@@ -96,6 +98,8 @@ export function OverviewPage() {
   const members = useMembers(org.id);
   const invitations = useInvitations(org.id, canInvite);
   const audit = useAuditLogs(org.id, canAudit);
+  const websites = useWebsites(org.id);
+  const canManageWebsites = can('websites.manage');
   const auditContext = useAuditContext();
 
   const memberItems = members.data?.pages.flatMap((p) => p.items) ?? [];
@@ -107,9 +111,46 @@ export function OverviewPage() {
 
   const emailVerified = Boolean(session.data?.user.emailVerified);
   const invitedSomeone = memberItems.length > 1 || (pendingCount ?? 0) > 0;
+  const siteList = websites.data ?? [];
+  const notInstalled = siteList.find((w) => w.installation.status !== 'verified');
   const steps = [
     { key: 'verify', done: emailVerified, title: 'Verify your email', description: 'Confirms your address so you can create and join organizations.' },
     { key: 'org', done: true, title: 'Create your organization', description: `${org.name} is ready.` },
+    // Website steps come from real data; if the list can't be loaded we leave them out rather than guess.
+    ...(websites.data
+      ? [
+          {
+            key: 'website',
+            done: siteList.length > 0,
+            title: 'Add your first website',
+            description: canManageWebsites
+              ? 'Tell Ledora which site you want to count visits for.'
+              : 'Ask an owner, admin or manager to add your website.',
+            action: canManageWebsites ? (
+              <Button component={RouterLink} to={`/o/${org.id}/websites?add=1`} variant="outlined" color="neutral" size="small">
+                Add a website
+              </Button>
+            ) : undefined,
+          },
+          {
+            key: 'install',
+            done: siteList.some((w) => w.installation.status === 'verified'),
+            title: 'Install Ledora on your website',
+            description: 'Paste a one-line snippet on your site. It’s confirmed as soon as the first visit arrives.',
+            action: notInstalled ? (
+              <Button
+                component={RouterLink}
+                to={`/o/${org.id}/websites/${notInstalled.id}/install`}
+                variant="outlined"
+                color="neutral"
+                size="small"
+              >
+                View install steps
+              </Button>
+            ) : undefined,
+          },
+        ]
+      : []),
     ...(canInvite
       ? [
           {
@@ -127,7 +168,7 @@ export function OverviewPage() {
       : []),
   ];
   const completed = steps.filter((s) => s.done).length;
-  const stepsLoading = canInvite && (members.isPending || invitations.isPending);
+  const stepsLoading = websites.isPending || (canInvite && (members.isPending || invitations.isPending));
 
   return (
     <>
@@ -216,13 +257,20 @@ export function OverviewPage() {
                 <Skeleton variant="text" height={20} />
               </Box>
             ) : (
-              <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, my: -3 }}>
-                {steps.map(({ key, ...step }) => (
-                  <ChecklistItem key={key} {...step} />
-                ))}
-              </Box>
+              <>
+                <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, my: -3 }}>
+                  {steps.map(({ key, ...step }) => (
+                    <ChecklistItem key={key} {...step} />
+                  ))}
+                </Box>
+                {websites.isError ? (
+                  <ApiErrorAlert error={websites.error} title="Couldn’t check your websites" sx={{ mt: 5 }} />
+                ) : null}
+              </>
             )}
           </SectionCard>
+
+          <PlanUsageCard orgId={org.id} />
 
           <SectionCard
             title="Team"

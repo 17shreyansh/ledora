@@ -2,6 +2,7 @@ import { hasPermission, type OrganizationWithRoleDto, type Permission } from '@l
 import CloseOutlined from '@mui/icons-material/CloseOutlined';
 import GroupOutlined from '@mui/icons-material/GroupOutlined';
 import HistoryOutlined from '@mui/icons-material/HistoryOutlined';
+import LanguageOutlined from '@mui/icons-material/LanguageOutlined';
 import MenuOutlined from '@mui/icons-material/MenuOutlined';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import SpaceDashboardOutlined from '@mui/icons-material/SpaceDashboardOutlined';
@@ -33,6 +34,7 @@ interface NavItem {
 function navItems(orgId: string): NavItem[] {
   return [
     { label: 'Overview', to: `/o/${orgId}`, icon: <SpaceDashboardOutlined />, end: true },
+    { label: 'Websites', to: `/o/${orgId}/websites`, icon: <LanguageOutlined />, permission: 'websites.read' },
     { label: 'Members', to: `/o/${orgId}/members`, icon: <GroupOutlined /> },
     { label: 'Activity', to: `/o/${orgId}/activity`, icon: <HistoryOutlined />, permission: 'audit.read' },
     { label: 'Settings', to: `/o/${orgId}/settings`, icon: <SettingsOutlined />, permission: 'org.update' },
