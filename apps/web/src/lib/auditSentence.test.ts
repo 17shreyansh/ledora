@@ -70,4 +70,15 @@ describe('audit sentences', () => {
     );
     expect(text(entry({ action: 'something.new' }))).toBe('Ada performed “something new”');
   });
+
+  it('describes website changes', () => {
+    expect(text(entry({ action: 'website.created', metadata: { name: 'Shop', domain: 'shop.example.com' } }))).toBe(
+      'Ada added the website Shop (shop.example.com)',
+    );
+    expect(
+      text(entry({ action: 'website.updated', metadata: { name: 'Shop', fields: ['allowedDomains', 'tracking.consentRequired', 'tracking.respectDoNotTrack'] } })),
+    ).toBe('Ada updated the allowed domains and privacy settings of Shop');
+    expect(text(entry({ action: 'website.key_rotated', metadata: { name: 'Shop' } }))).toBe('Ada rotated the site key of Shop');
+    expect(text(entry({ action: 'website.deleted', metadata: { name: 'Shop' } }))).toBe('Ada deleted the website Shop');
+  });
 });

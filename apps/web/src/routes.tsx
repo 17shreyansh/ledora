@@ -18,6 +18,8 @@ const AcceptInvitationPage = lazy(() => import('./features/invitations/AcceptInv
 const CreateOrganizationPage = lazy(() => import('./features/onboarding/CreateOrganizationPage'));
 const OverviewPage = lazy(() => import('./features/organizations/OverviewPage'));
 const SettingsPage = lazy(() => import('./features/organizations/SettingsPage'));
+const WebsitesPage = lazy(() => import('./features/websites/WebsitesPage'));
+const WebsiteDetailPage = lazy(() => import('./features/websites/WebsiteDetailPage'));
 const MembersPage = lazy(() => import('./features/members/MembersPage'));
 const ActivityPage = lazy(() => import('./features/activity/ActivityPage'));
 const AccountPage = lazy(() => import('./features/account/AccountPage'));
@@ -57,6 +59,8 @@ export const routes: RouteObject[] = [
             element: <OrgLayout />,
             children: [
               { index: true, element: <OverviewPage /> },
+              { path: 'websites', element: <WebsitesPage /> },
+              { path: 'websites/:websiteId/:tab?', element: <WebsiteDetailPage /> },
               { path: 'members', element: <MembersPage /> },
               { path: 'activity', element: <ActivityPage /> },
               { path: 'settings', element: <SettingsPage /> },

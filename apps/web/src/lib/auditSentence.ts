@@ -36,6 +36,12 @@ function joinList(items: string[]): string {
 
 const FIELD_LABELS: Record<string, string> = { name: 'name', timezone: 'time zone', slug: 'address' };
 
+function websiteFieldLabel(field: string): string {
+  if (field === 'allowedDomains') return 'allowed domains';
+  if (field.startsWith('tracking')) return 'privacy settings';
+  return FIELD_LABELS[field] ?? field;
+}
+
 export function describeAuditEntry(entry: AuditLogDto, ctx: AuditContext): SentencePart[] {
   const isMe = (id: string | null | undefined) => id != null && id === ctx.currentUserId;
   const actorIsMe = isMe(entry.actor.id);
@@ -111,6 +117,28 @@ export function describeAuditEntry(entry: AuditLogDto, ctx: AuditContext): Sente
     case 'invitation.accepted': {
       const role = roleLabel(m.role);
       return role ? [actor, ' joined the organization as ', { strong: role }] : [actor, ' joined the organization'];
+    }
+    case 'website.created': {
+      const name = typeof m.name === 'string' ? m.name : null;
+      const domain = typeof m.domain === 'string' ? m.domain : null;
+      if (name && domain) return [actor, ' added the website ', { strong: name }, ` (${domain})`];
+      return name ? [actor, ' added the website ', { strong: name }] : [actor, ' added a website'];
+    }
+    case 'website.updated': {
+      const name = typeof m.name === 'string' ? m.name : null;
+      const fields = Array.isArray(m.fields) ? m.fields.filter((f): f is string => typeof f === 'string') : [];
+      const labels = [...new Set(fields.map(websiteFieldLabel))];
+      const what: SentencePart = name ? { strong: name } : 'a website';
+      if (labels.length === 0) return [actor, ' updated ', what];
+      return [actor, ` updated the ${joinList(labels)} of `, what];
+    }
+    case 'website.key_rotated': {
+      const name = typeof m.name === 'string' ? m.name : null;
+      return name ? [actor, ' rotated the site key of ', { strong: name }] : [actor, ' rotated a website’s site key'];
+    }
+    case 'website.deleted': {
+      const name = typeof m.name === 'string' ? m.name : null;
+      return name ? [actor, ' deleted the website ', { strong: name }] : [actor, ' deleted a website'];
     }
     default:
       return [actor, ` performed “${entry.action.replace(/[._]/g, ' ')}”`];
