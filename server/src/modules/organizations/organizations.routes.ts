@@ -18,6 +18,7 @@ import type { Services } from '../../services/container.js';
 import { AuditLogModel, type AuditLog } from '../audit/auditLog.model.js';
 import { UserModel, type User } from '../users/user.model.js';
 import { websiteRoutes } from '../websites/websites.routes.js';
+import { analyticsRoutes } from '../analytics/analytics.routes.js';
 
 const idParam = (value: unknown) => new Types.ObjectId(parse(objectIdSchema, value));
 const cursorQuery = z.object({ cursor: z.string().max(64).optional() });
@@ -60,6 +61,7 @@ export function organizationRoutes(s: Services): Router {
   });
 
   scoped.use('/websites', websiteRoutes(s));
+  scoped.use('/analytics', analyticsRoutes(s));
 
   // ── Members ──
   scoped.get('/members', requirePermission('members.read'), async (req, res) => {

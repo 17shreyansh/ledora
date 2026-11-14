@@ -1,6 +1,7 @@
 import type { Redis } from 'ioredis';
 import type { Config } from '../config/env.js';
 import { createRateLimiterFactory, type RateLimiterFactory } from '../common/middleware/rateLimit.js';
+import { AnalyticsService } from '../modules/analytics/analytics.service.js';
 import { AuditService } from '../modules/audit/audit.service.js';
 import { AuthService } from '../modules/auth/auth.service.js';
 import { EntitlementsService } from '../modules/entitlements/entitlements.service.js';
@@ -28,6 +29,7 @@ export interface Services {
   entitlements: EntitlementsService;
   websites: WebsitesService;
   ingest: IngestService;
+  analytics: AnalyticsService;
   limiter: RateLimiterFactory;
 }
 
@@ -46,6 +48,7 @@ export function createServices({ config, redis, mail }: AppDeps): Services {
     entitlements,
     websites,
     ingest: new IngestService(redis, entitlements, websites),
+    analytics: new AnalyticsService(),
     limiter: createRateLimiterFactory(redis, config.RATE_LIMIT_ENABLED),
   };
 }

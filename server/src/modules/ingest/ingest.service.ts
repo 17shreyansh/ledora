@@ -15,6 +15,7 @@ import { OrganizationModel, type Organization } from '../organizations/organizat
 import { WebsiteModel, type Website } from '../websites/website.model.js';
 import type { WebsitesService } from '../websites/websites.service.js';
 import { AnalyticsEventModel, type AnalyticsEvent } from './analyticsEvent.model.js';
+import { foldIntoSessions } from './rollup.js';
 import { cleanPageUrl, cleanReferrer } from './sanitize.js';
 import { classifyUserAgent, isBotUserAgent } from './userAgent.js';
 
@@ -135,23 +136,31 @@ export class IngestService {
     const toStore = valid.slice(0, granted);
     const expiresAt = new Date(now + limits.analyticsRetentionDays * 86_400_000);
 
-    let stored = toStore.length;
+    const docs = toStore.map((e) => ({ ...e, expiresAt }));
+    // Indexes (within `docs`) that were rejected as duplicates of already-stored events.
+    const duplicateIdx = new Set<number>();
     try {
-      await AnalyticsEventModel.insertMany(toStore.map((e) => ({ ...e, expiresAt })), { ordered: false, lean: true });
+      await AnalyticsEventModel.insertMany(docs, { ordered: false, lean: true });
     } catch (err) {
-      const e = err as { code?: number; writeErrors?: Array<{ code?: number; err?: { code?: number } }>; insertedDocs?: unknown[]; result?: { insertedCount?: number } };
-      const writeErrors = e.writeErrors ?? [];
+      type WriteError = { code?: number; index?: number; err?: { code?: number; index?: number } };
+      const e = err as { code?: number; writeErrors?: WriteError[] | WriteError };
+      const writeErrors = Array.isArray(e.writeErrors) ? e.writeErrors : e.writeErrors ? [e.writeErrors] : [];
       const allDuplicates = writeErrors.length > 0 && writeErrors.every((w) => (w.code ?? w.err?.code) === 11000);
-      if (!allDuplicates && e.code !== 11000) {
+      if (!allDuplicates) {
         await this.entitlements.settleEvents(orgId, granted, 0);
         throw err;
       }
-      stored = toStore.length - Math.max(writeErrors.length, 1);
+      for (const w of writeErrors) duplicateIdx.add(w.index ?? w.err?.index ?? -1);
     }
+    const inserted = docs.filter((_, i) => !duplicateIdx.has(i));
+    const stored = inserted.length;
     await this.entitlements.settleEvents(orgId, granted, stored);
     const duplicates = toStore.length - stored;
 
     if (stored > 0) {
+      await foldIntoSessions(inserted).catch((err: unknown) => {
+        logger.error({ err, websiteId: site.websiteId }, 'Failed to update session aggregates');
+      });
       await this.websites.recordActivity({ _id: websiteId, orgId }, batch.sdkVersion).catch((err: unknown) => {
         logger.error({ err, websiteId: site.websiteId }, 'Failed to record installation activity');
       });

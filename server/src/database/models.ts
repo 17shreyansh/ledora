@@ -11,3 +11,4 @@ export { UsageRecordModel } from '../modules/entitlements/usageRecord.model.js';
 export { WebsiteModel } from '../modules/websites/website.model.js';
 export { AnalyticsEventModel } from '../modules/ingest/analyticsEvent.model.js';
 export { OutboxModel, EventReceiptModel } from '../modules/events/outbox.model.js';
+export { AnalyticsSessionModel, AnalyticsVisitorModel } from '../modules/ingest/sessionVisitor.models.js';

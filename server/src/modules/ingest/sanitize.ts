@@ -20,9 +20,15 @@ export function cleanPageUrl(raw: string): CleanUrl | null {
     const v = u.searchParams.get(`utm_${k}`);
     if (v) utm[k] = v.slice(0, 100);
   }
+  // Hash routers ("#/pricing") keep the route; plain anchors ("#top") are dropped.
+  let path = u.pathname || '/';
+  if (u.hash.startsWith('#/')) {
+    const route = u.hash.slice(1).split('?')[0]!;
+    path = `${path.replace(/\/$/, '')}#${route}`;
+  }
   return {
     host: u.hostname.toLowerCase(),
-    path: (u.pathname || '/').slice(0, 512),
+    path: path.slice(0, 512),
     utm: Object.keys(utm).length ? utm : null,
   };
 }

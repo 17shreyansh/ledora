@@ -8,3 +8,5 @@ export * from './schemas/auth.js';
 export * from './schemas/organizations.js';
 export * from './schemas/websites.js';
 export * from './ingest-contract.js';
+export * from './schemas/analytics.js';
+export * from './analytics-dto.js';
