@@ -10,10 +10,12 @@
 | 7 | Tests | Browser E2E scripts were run manually and are not yet in the repo/CI (they read emails from worker logs). | Regressions in UI flows not caught automatically. | Add Playwright suite with a test mail sink to CI. |
 | 8 | Docs | No OpenAPI document yet; `docs/API_REFERENCE.md` is hand-written. | Contract drift risk. | Generate from shared Zod schemas. |
 | 9 | Web | `vite preview` serves on :4173, which is not in the default `CORS_ORIGINS`. | Add it to `CORS_ORIGINS` when previewing. | — |
-| 10 | Web | Activity timestamps use the viewer's browser time zone, not the organization's. | Minor. | Use org time zone with the Phase 3 reporting utilities. |
+| 10 | Web | Activity timestamps use the viewer's browser time zone, not the organization's. | Minor. | Reuse the analytics time-zone formatting. |
 | 11 | Ops | No metrics endpoint, dashboards, alerting or error-tracking service yet. | Reduced visibility in production. | Phase 10 (32.8). |
 | 12 | Ops | Deployment procedure is a reference design; no production environment has been provisioned or tested. | — | First deployment. |
 | 13 | Dev | Locally, emails only appear when the worker runs (`npm run dev:worker`). | Confusing on first run. | Documented in README. |
-| 14 | SDK/ingest | With `data-ledora-hash="true"` the SDK sends `#/route` URLs, but the server drops fragments, so hash-routed SPAs record every page as `/`. | Wrong paths for hash-router sites (opt-in only). | Phase 3: keep the hash path when the site enables hash routing. |
 | 15 | SDK | Routers that captured `history.pushState` before the SDK loaded bypass the wrapper (popstate still works). | Some SPA navigations may be missed. | Document "load the snippet in `<head>`"; consider Navigation API when widely available. |
 | 16 | SDK | Consent is not persisted by the SDK; the site's consent tool must call `Ledora.consent(true)` on every page load. | Integration detail. | Documented in `sdk/README.md`. |
+| 17 | Analytics | Queries aggregate raw events/sessions (no rollups). Fine at current scale; large sites over 90 days will slow down. | Performance at scale. | Rollups or ClickHouse behind `AnalyticsService` (ADR-017). |
+| 18 | Analytics | Session folding runs after the event insert; a crash between the two leaves sessions slightly undercounted for that batch. | Rare, small undercount. | Reconcile job from raw events if it ever matters. |
+| 19 | Analytics | No country/region breakdown: no IP is stored and no geo source is configured. | Missing dimension. | Use Cloudflare `CF-IPCountry` at the edge (country only) once behind Cloudflare. |

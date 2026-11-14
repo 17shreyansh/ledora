@@ -94,6 +94,24 @@ Limits are enforced server-side: `403 PLAN_LIMIT` (websites, team seats incl. pe
 
 `installation.status` becomes `verified` only when the server stores a real SDK event from an allowed domain.
 
+## Analytics (`analytics.read`, every role)
+
+Query (all endpoints): `websiteId?` (omit = all websites of the org; another org's id → 404),
+`range` = `today | yesterday | 7d | 30d | 90d | custom` (default `7d`; ranges include today),
+`from`/`to` = `YYYY-MM-DD` in the **organization's time zone** (custom only, inclusive, ≤ 366 days),
+`compare` = `true | false` (default `true`).
+
+| Method | Path | Extra query | Success |
+| --- | --- | --- | --- |
+| GET | `/orgs/:orgId/analytics/overview` | — | `AnalyticsOverviewDto`: totals + previous-period totals, zero-filled series (hourly for single days, daily otherwise) bucketed at local hour/midnight boundaries |
+| GET | `/orgs/:orgId/analytics/breakdown` | `dimension` = `page, entry_page, exit_page, referrer, utm_source, utm_medium, utm_campaign, device, browser, os, event`; `limit` 1–100 (default 10) | `BreakdownDto` (`value` = pageviews for pages, sessions for session dimensions, count for events; `visitors` unique; `total` across all keys) |
+| GET | `/orgs/:orgId/analytics/realtime` | — | `RealtimeDto`: active visitors (5 min), pageviews per minute (30 min), top pages, last 20 events without visitor ids |
+
+Definitions: *visitors* = distinct SDK visitor ids with any event in range; *sessions* = sessions
+starting in range; *bounce* = a session with ≤ 1 pageview and no custom event; *new visitors* =
+visitors first seen in range (within retention); *avg. session duration* = mean of last − first
+event time per session.
+
 ## Public SDK surface — `/public/v1` (no cookies, `Access-Control-Allow-Origin: *`, never credentials)
 
 | Method | Path | Body | Success | Errors |

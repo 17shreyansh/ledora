@@ -42,6 +42,17 @@ slug change (alias + org + audit), role change / removal / invitation acceptance
 | `outbox` | Business events awaiting relay | `eventId`, `type`, `version`, `orgId`, `websiteId`, `subject`, `data` (ids only), `lockedUntil`, `relayedAt` | `eventId` unique · `{relayedAt,_id}` · TTL on `expiresAt` | 7 days after relay |
 | `eventReceipts` | Consumer de-duplication | `consumer`, `eventId` | `{consumer,eventId}` unique · TTL 400 days | 400 days |
 
+### Built (Phase 3)
+
+| Collection | Purpose | Key fields | Indexes | Retention |
+| --- | --- | --- | --- | --- |
+| `analyticsSessions` | One document per SDK session, folded at ingestion | `websiteId`, `sessionId`, `visitorId`, `startedAt`, `endedAt`, `pageviews`, `events`, `entryPath`, `exitPath`, `referrerHost`, `utm`, `device` | `{websiteId,sessionId}` unique · `{websiteId,startedAt}` · TTL | Same as events |
+| `analyticsVisitors` | First/last sighting per visitor and website | `websiteId`, `visitorId`, `firstSeenAt`, `lastSeenAt` | `{websiteId,visitorId}` unique · `{websiteId,firstSeenAt}` · TTL | Same as events |
+
+Only events that were newly stored (not duplicates) are folded, with pipeline upserts using
+`$min`/`$max` so out-of-order batches still produce correct start/end and entry/exit pages. All
+user-supplied values are wrapped in `$literal`.
+
 `organizations` gained `planKey` (default `free`), `limitOverrides` and `resourceVersion` (serializes limit-checked creates, same technique as `membershipVersion`).
 
 Monthly event quota: a Redis counter per org-month reserves events atomically before insert and is warmed from `usageRecords` if Redis loses it; `usageRecords` is incremented by the number actually stored.
@@ -52,7 +63,7 @@ Bounded documents only; high-volume data in its own collections with TTL or roll
 
 | Collection | Phase | Notes |
 | --- | --- | --- |
-| `analyticsSessions` / daily rollups | 3 | Derived from `analyticsEvents`; repository interface for later ClickHouse |
+| Pre-aggregated rollups | when needed | Not built: queries read `analyticsEvents`/`analyticsSessions` directly (ADR-017) |
 | `forms` / `formVersions` / `submissions` | 4 | Immutable published versions; submissions independent, cursor-paginated |
 | `leads` | 4 | Dedupe by auditable rule (exact normalized email per org by default) |
 | `chatbotFlows` / `chatbotFlowVersions` / `faqEntries` | 5 | Conversations pin the flow version they started on |

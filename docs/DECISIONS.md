@@ -82,3 +82,16 @@ Duplicates and rejected events release their reservation.
 ## ADR-016 — Plans live in the database
 Default plans are seeded with `$setOnInsert` (never overwriting edits). Limits change without a
 deploy; prices are not part of plans (billing is Phase 9).
+
+## ADR-017 — Analytics queries read raw events and session documents (no rollups yet)
+Daily rollups in UTC cannot serve organizations in UTC+5:30 or other non-hour offsets, and
+per-zone rollups multiply storage. At current scale, indexed aggregations over
+`{websiteId, ts}` and `{websiteId, startedAt}` with `$dateTrunc(timezone)` are correct for every
+zone. All reads go through `AnalyticsService`, so 30-minute UTC rollups or ClickHouse can replace
+the internals without API changes. Revisit when a 90-day overview exceeds ~500 ms p95.
+
+## ADR-018 — Organization time zone defines every range and bucket
+"Today", "last 7 days" and custom dates are calendar dates in the org's IANA zone. Instants are
+computed with `Intl` (no date library) and tested across DST (23/25-hour days), half-hour offsets,
+a zone that skips midnight and 30-minute DST. Ranges include today; the comparison period is the
+same number of days immediately before ("today" compares with the same elapsed part of yesterday).
