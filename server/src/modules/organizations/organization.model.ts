@@ -14,6 +14,12 @@ export interface Organization {
    * and leaving the organization with no owner).
    */
   membershipVersion: number;
+  /** Same idea as membershipVersion, for limit-checked resources such as websites. */
+  resourceVersion: number;
+  /** Key of the subscription plan; limits come from the `plans` collection. */
+  planKey: string;
+  /** Per-organization limit overrides (enterprise contracts, temporary grants). */
+  limitOverrides: Partial<Record<'websites' | 'monthlyEvents' | 'analyticsRetentionDays' | 'teamMembers', number>>;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -27,9 +33,12 @@ const organizationSchema = new Schema<Organization>(
     status: { type: String, enum: ['active', 'deleted'], default: 'active' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     membershipVersion: { type: Number, default: 0 },
+    resourceVersion: { type: Number, default: 0 },
+    planKey: { type: String, default: 'free', maxlength: 32 },
+    limitOverrides: { type: Schema.Types.Mixed, default: {} },
     deletedAt: { type: Date, default: null },
   },
-  { timestamps: true, strict: 'throw' },
+  { timestamps: true, strict: 'throw', minimize: false },
 );
 
 organizationSchema.index({ slug: 1 }, { unique: true });

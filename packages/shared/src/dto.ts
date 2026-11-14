@@ -65,3 +65,37 @@ export interface Paginated<T> {
   items: T[];
   nextCursor: string | null;
 }
+
+export type InstallationStatus = 'not_installed' | 'verified';
+
+export interface WebsiteDto {
+  id: string;
+  name: string;
+  domain: string;
+  allowedDomains: string[];
+  /** Public identifier used by the SDK snippet. Not a secret. */
+  siteKey: string;
+  tracking: { consentRequired: boolean; respectDoNotTrack: boolean };
+  installation: {
+    status: InstallationStatus;
+    firstSeenAt: string | null;
+    lastSeenAt: string | null;
+    sdkVersion: string | null;
+  };
+  createdAt: string;
+}
+
+export interface WebsiteStatsDto {
+  /** Events stored in the last 24 hours (accepted, de-duplicated, bots excluded). */
+  eventsLast24h: number;
+  pageviewsLast24h: number;
+  lastEventAt: string | null;
+}
+
+export interface UsageDto {
+  /** Calendar month in UTC, e.g. "2026-11". */
+  period: string;
+  plan: { key: string; name: string };
+  limits: { websites: number; monthlyEvents: number; analyticsRetentionDays: number; teamMembers: number };
+  usage: { websites: number; monthlyEvents: number; teamMembers: number };
+}

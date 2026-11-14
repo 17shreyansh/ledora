@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { addMember, createOrg, setupTestEnv, signUp, type TestEnv } from './helpers.js';
+import { addMember, createOrg, setPlan, setupTestEnv, signUp, type TestEnv } from './helpers.js';
 
 let env: TestEnv;
 let alice: Awaited<ReturnType<typeof signUp>>; // owner of A
@@ -13,6 +13,7 @@ beforeAll(async () => {
   bob = await signUp(env, { name: 'Bob' });
   orgA = await createOrg(alice.client, 'Alpha Agency');
   orgB = await createOrg(bob.client, 'Beta Bakery');
+  await setPlan(orgA.id, 'business');
 });
 afterAll(async () => env.teardown());
 

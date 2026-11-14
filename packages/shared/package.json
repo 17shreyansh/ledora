@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./ingest-contract": {
+      "types": "./dist/ingest-contract.d.ts",
+      "default": "./dist/ingest-contract.js"
     }
   },
   "files": [

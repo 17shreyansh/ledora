@@ -9,6 +9,7 @@ import { createLogger, setLogger, logger } from '../common/logger.js';
 import { loadConfig } from '../config/env.js';
 import { connectDatabase, disconnectDatabase } from '../database/connection.js';
 import '../database/models.js';
+import { seedDefaultPlans } from '../modules/entitlements/plan.model.js';
 
 async function main() {
   const config = loadConfig();
@@ -21,6 +22,8 @@ async function main() {
     await model.createIndexes();
     logger.info({ collection: model.collection.collectionName }, 'Indexes ensured');
   }
+  await seedDefaultPlans();
+  logger.info('Default plans ensured (existing plans untouched)');
   await disconnectDatabase();
 }
 

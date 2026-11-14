@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuditLogModel } from '../src/modules/audit/auditLog.model.js';
 import { MembershipModel } from '../src/modules/memberships/membership.model.js';
-import { Client, addMember, createOrg, lastToken, setupTestEnv, signUp, uniqueEmail, type TestEnv } from './helpers.js';
+import { Client, addMember, createOrg, lastToken, setPlan, setupTestEnv, signUp, uniqueEmail, type TestEnv } from './helpers.js';
 
 let env: TestEnv;
 beforeAll(async () => {
@@ -125,10 +125,36 @@ describe('invitations', () => {
   });
 });
 
+describe('team member limit', () => {
+  it('counts members and pending invitations against the plan, and re-checks on accept', async () => {
+    const owner = await signUp(env);
+    const org = await createOrg(owner.client, 'Seats Co'); // Free: 2 seats
+    const first = uniqueEmail();
+    expect((await owner.client.post(`/orgs/${org.id}/invitations`, { email: first, role: 'viewer' })).status).toBe(201);
+    // Re-inviting the same person replaces their invitation, so it does not use another seat.
+    expect((await owner.client.post(`/orgs/${org.id}/invitations`, { email: first, role: 'analyst' })).status).toBe(201);
+    const second = await owner.client.post(`/orgs/${org.id}/invitations`, { email: uniqueEmail(), role: 'viewer' });
+    expect(second.status).toBe(403);
+    expect(second.body.error.code).toBe('PLAN_LIMIT');
+
+    // Invitations issued on a bigger plan cannot be accepted after a downgrade fills the seats.
+    await setPlan(org.id, 'starter');
+    const a = await signUp(env);
+    const b = await signUp(env);
+    await addMember(env, owner.client, org.id, a, 'viewer');
+    await owner.client.post(`/orgs/${org.id}/invitations`, { email: b.email, role: 'viewer' });
+    await setPlan(org.id, 'free');
+    const res = await b.client.post('/invitations/accept', { token: lastToken(env, b.email) });
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('PLAN_LIMIT');
+  });
+});
+
 describe('role hierarchy', () => {
   it('stops admins from creating or managing admins and owners', async () => {
     const owner = await signUp(env);
     const org = await createOrg(owner.client, 'Hierarchy Co');
+    await setPlan(org.id, 'business');
     const admin = await signUp(env);
     await addMember(env, owner.client, org.id, admin, 'admin');
     const otherAdmin = await signUp(env);
@@ -155,6 +181,7 @@ describe('role hierarchy', () => {
   it('stays consistent when two owners demote each other at the same time', async () => {
     const a = await signUp(env);
     const org = await createOrg(a.client, 'Race Co');
+    await setPlan(org.id, 'business');
     const b = await signUp(env);
     await addMember(env, a.client, org.id, b, 'owner');
 
@@ -173,6 +200,7 @@ describe('role hierarchy', () => {
   it('lets an owner hand over ownership and step down', async () => {
     const a = await signUp(env);
     const org = await createOrg(a.client, 'Handover Co');
+    await setPlan(org.id, 'business');
     const b = await signUp(env);
     await addMember(env, a.client, org.id, b, 'admin');
     expect((await a.client.patch(`/orgs/${org.id}/members/${b.userId}`, { role: 'owner' })).status).toBe(200);

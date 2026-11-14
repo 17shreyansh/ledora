@@ -2,6 +2,7 @@ export type MailTemplate =
   | { template: 'verify_email'; data: { name: string; link: string } }
   | { template: 'password_reset'; data: { name: string; link: string } }
   | { template: 'password_changed'; data: { name: string } }
+  | { template: 'installation_verified'; data: { name: string; websiteName: string; domain: string; link: string } }
   | { template: 'invitation'; data: { inviterName: string; organizationName: string; roleLabel: string; link: string } };
 
 export type MailJob = MailTemplate & { to: string };
@@ -58,6 +59,14 @@ export function renderMail(job: MailTemplate): RenderedMail {
         subject: 'Your Ledora password was changed',
         text: `Hi ${name},\n\nYour Ledora password was just changed and all other sessions were signed out. If this was not you, reset your password immediately and contact support.`,
         html: layout('Your password was changed', `<p>Hi ${escapeHtml(name)},</p><p>Your Ledora password was just changed and all other sessions were signed out.</p><p>If this was not you, reset your password immediately and contact support.</p>`),
+      };
+    }
+    case 'installation_verified': {
+      const { name, websiteName, domain, link } = job.data;
+      return {
+        subject: `Ledora is receiving data from ${domain}`,
+        text: `Hi ${name},\n\nGood news: Ledora just received its first visit from ${websiteName} (${domain}). Your installation is working.\n\nOpen the website in Ledora:\n${link}`,
+        html: layout('Your installation is working', `<p>Hi ${escapeHtml(name)},</p><p>Ledora just received its first visit from <strong>${escapeHtml(websiteName)}</strong> (${escapeHtml(domain)}). Your installation is working.</p>${button(link, 'Open website')}`),
       };
     }
     case 'invitation': {

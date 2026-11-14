@@ -17,6 +17,7 @@ import { parse } from '../../common/validation.js';
 import type { Services } from '../../services/container.js';
 import { AuditLogModel, type AuditLog } from '../audit/auditLog.model.js';
 import { UserModel, type User } from '../users/user.model.js';
+import { websiteRoutes } from '../websites/websites.routes.js';
 
 const idParam = (value: unknown) => new Types.ObjectId(parse(objectIdSchema, value));
 const cursorQuery = z.object({ cursor: z.string().max(64).optional() });
@@ -53,6 +54,12 @@ export function organizationRoutes(s: Services): Router {
     await s.organizations.softDelete(orgOf(req).org, authOf(req).user._id, confirmName, req.ip ?? null);
     res.status(204).end();
   });
+
+  scoped.get('/usage', requirePermission('org.read'), async (req, res) => {
+    res.json(await s.entitlements.usage(orgOf(req).org));
+  });
+
+  scoped.use('/websites', websiteRoutes(s));
 
   // ── Members ──
   scoped.get('/members', requirePermission('members.read'), async (req, res) => {

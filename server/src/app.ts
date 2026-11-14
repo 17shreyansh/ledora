@@ -12,6 +12,8 @@ import { healthRoutes } from './health/health.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { invitationRoutes, organizationRoutes } from './modules/organizations/organizations.routes.js';
 import { meRoutes } from './modules/users/users.routes.js';
+import { publicRoutes } from './modules/ingest/public.routes.js';
+import { sdkStatic } from './sdkStatic.js';
 import { createServices, type AppDeps, type Services } from './services/container.js';
 
 export function createApp(deps: AppDeps): { app: Express; services: Services } {
@@ -36,6 +38,11 @@ export function createApp(deps: AppDeps): { app: Express; services: Services } {
     }),
   );
   app.use(healthRoutes(services));
+
+  // ── Public SDK surface (no cookies, no credentials) ──
+  app.use('/public/v1', publicRoutes(services));
+  const sdk = sdkStatic(config.SDK_DIST_DIR);
+  if (sdk) app.use('/sdk', sdk);
 
   // ── Authenticated customer API ──
   const api = express.Router();

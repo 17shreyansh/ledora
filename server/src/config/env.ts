@@ -33,6 +33,8 @@ const EnvSchema = z
     MAIL_FROM: z.string().default('Ledora <no-reply@ledora.com>'),
     AUDIT_RETENTION_DAYS: z.coerce.number().int().min(30).max(3650).default(730),
     MAX_ORGS_PER_USER: z.coerce.number().int().min(1).max(1000).default(25),
+    /** Directory holding the built SDK (`sdk/dist`). When present, served at /sdk as the CDN origin. */
+    SDK_DIST_DIR: z.string().optional(),
     /** Set to false only in tests that exercise other behaviour. */
     RATE_LIMIT_ENABLED: bool.default(true),
   })

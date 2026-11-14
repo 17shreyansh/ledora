@@ -134,3 +134,9 @@ export function lastToken(env: TestEnv, email: string): string {
   if (!mail || !('link' in mail.data)) throw new Error(`no email with a link for ${email}`);
   return tokenFromLink(mail.data.link);
 }
+
+/** Moves an organization to another plan (admin tooling arrives in Phase 9). */
+export async function setPlan(orgId: string, planKey: string, limitOverrides: Record<string, number> = {}) {
+  const { OrganizationModel } = await import('../src/modules/organizations/organization.model.js');
+  await OrganizationModel.updateOne({ _id: orgId }, { $set: { planKey, limitOverrides } });
+}

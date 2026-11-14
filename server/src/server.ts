@@ -6,6 +6,7 @@ import { createRedis } from './database/redis.js';
 import { createEmailQueue } from './queues/queues.js';
 import { createApp } from './app.js';
 import { QueueMailDispatcher } from './services/mail/dispatcher.js';
+import { seedDefaultPlans } from './modules/entitlements/plan.model.js';
 
 async function main() {
   const config = loadConfig();
@@ -14,6 +15,7 @@ async function main() {
   // Indexes are built at boot outside production; in production they are created
   // by the deploy step (see docs/DEPLOYMENT.md) so large builds never block startup.
   await connectDatabase(config.MONGODB_URI, { autoIndex: !config.isProduction });
+  if (!config.isProduction) await seedDefaultPlans();
   const redis = createRedis(config.REDIS_URL, 'api');
   const emailQueue = createEmailQueue(createRedis(config.REDIS_URL, 'queue-email'));
   const { app } = createApp({ config, redis, mail: new QueueMailDispatcher(emailQueue) });

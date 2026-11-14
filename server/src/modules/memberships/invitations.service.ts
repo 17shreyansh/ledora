@@ -13,6 +13,7 @@ import { generateToken, hashToken } from '../../common/utils/tokens.js';
 import { withTransaction } from '../../database/transaction.js';
 import type { MailDispatcher } from '../../services/mail/dispatcher.js';
 import type { AuditService } from '../audit/audit.service.js';
+import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { OrganizationModel, type Organization } from '../organizations/organization.model.js';
 import { UserModel, type User } from '../users/user.model.js';
 import { InvitationModel, type Invitation } from './invitation.model.js';
@@ -27,6 +28,7 @@ export class InvitationsService {
     private readonly config: Config,
     private readonly mail: MailDispatcher,
     private readonly audit: AuditService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   private tokenHash(raw: string) {
@@ -54,6 +56,13 @@ export class InvitationsService {
     }
     const pending = await InvitationModel.countDocuments({ orgId: org._id, status: 'pending', expiresAt: { $gt: new Date() } });
     if (pending >= MAX_PENDING_PER_ORG) throw AppError.conflict('Too many pending invitations. Revoke some first.');
+    const { teamMembers } = await this.entitlements.limitsFor(org);
+    const members = await MembershipModel.countDocuments({ orgId: org._id });
+    // Pending invitations to other people count as seats, except the one this replaces.
+    const otherPending = await InvitationModel.countDocuments({ orgId: org._id, status: 'pending', expiresAt: { $gt: new Date() }, email: { $ne: input.email } });
+    if (members + otherPending >= teamMembers) {
+      throw EntitlementsService.limitReached('team members (including pending invitations)', teamMembers);
+    }
 
     const raw = generateToken();
     const invitation = await withTransaction(async (session) => {
@@ -146,6 +155,14 @@ export class InvitationsService {
         { session },
       );
       if (claimed.modifiedCount === 0) throw new AppError(400, 'TOKEN_INVALID', 'This invitation was already used');
+      const alreadyMember = await MembershipModel.exists({ orgId: org._id, userId: user._id }).session(session);
+      if (!alreadyMember) {
+        const { teamMembers } = await this.entitlements.limitsFor(org);
+        const members = await MembershipModel.countDocuments({ orgId: org._id }).session(session);
+        if (members >= teamMembers) {
+          throw new AppError(403, 'PLAN_LIMIT', `${org.name} has reached its team member limit. Ask an owner to free a seat or upgrade.`);
+        }
+      }
       // An existing member keeps their current role; accepting never downgrades anyone.
       await MembershipModel.updateOne(
         { orgId: org._id, userId: user._id },
