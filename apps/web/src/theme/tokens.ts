@@ -150,3 +150,21 @@ export const layout = {
   contentMaxWidth: 1120,
   appBarHeight: 56,
 } as const;
+
+/**
+ * Chart chrome and marks. Charts use the "emphasis" form: the current period in the brand's deep
+ * purple, the comparison in a recessive slate (always dashed and legend-labelled, and every value is
+ * also in the chart's data table, since slate 400 sits just under 3:1 on white).
+ */
+export const chart = {
+  series: brand.deepPurple,
+  seriesFillOpacity: 0.1,
+  comparison: slate[400],
+  grid: slate[150],
+  axis: slate[200],
+  tick: slate[500],
+  /** Track behind share bars and meters: the lightest step of the series ramp. */
+  track: purple[50],
+  good: status.success.main,
+  bad: status.error.main,
+} as const;
