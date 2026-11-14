@@ -64,6 +64,7 @@ describe('public config', () => {
     expect(res.headers['access-control-allow-origin']).toBe('*');
     expect(res.headers['access-control-allow-credentials']).toBeUndefined();
     expect(res.headers['set-cookie']).toBeUndefined();
+    expect(res.headers['access-control-expose-headers']).toContain('Retry-After');
     expect(JSON.stringify(res.body)).not.toContain(orgId);
   });
 

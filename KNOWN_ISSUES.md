@@ -2,7 +2,6 @@
 
 | # | Area | Issue | Impact | Plan |
 | --- | --- | --- | --- | --- |
-| 1 | Repo | Code is not yet pushed to GitHub (this session cannot create repositories). | Work lives only in the build container until pushed. | Owner creates an empty repo; then push. |
 | 2 | Tooling | 7 moderate `npm audit` findings in dev-only lint tooling (`minimatch` via `typescript-eslint`); no fixed release yet. Production dependencies: 0. | None at runtime. | Upgrade when upstream ships a fix. |
 | 3 | Auth | Registration returns 409 for an existing email (account enumeration), rate-limited to 10/h/IP. | Low; documented trade-off. | Revisit with an email-first sign-up flow if required. |
 | 4 | Orgs | Slug uniqueness between `organizations.slug` and `orgSlugAliases.slug` is checked in application code; the two unique indexes do not cover a simultaneous cross-collection race. | Very unlikely duplicate on concurrent rename + create. | Single `slugs` registry collection with one unique index (Phase 4, with form routing). |
@@ -15,3 +14,6 @@
 | 11 | Ops | No metrics endpoint, dashboards, alerting or error-tracking service yet. | Reduced visibility in production. | Phase 10 (32.8). |
 | 12 | Ops | Deployment procedure is a reference design; no production environment has been provisioned or tested. | — | First deployment. |
 | 13 | Dev | Locally, emails only appear when the worker runs (`npm run dev:worker`). | Confusing on first run. | Documented in README. |
+| 14 | SDK/ingest | With `data-ledora-hash="true"` the SDK sends `#/route` URLs, but the server drops fragments, so hash-routed SPAs record every page as `/`. | Wrong paths for hash-router sites (opt-in only). | Phase 3: keep the hash path when the site enables hash routing. |
+| 15 | SDK | Routers that captured `history.pushState` before the SDK loaded bypass the wrapper (popstate still works). | Some SPA navigations may be missed. | Document "load the snippet in `<head>`"; consider Navigation API when widely available. |
+| 16 | SDK | Consent is not persisted by the SDK; the site's consent tool must call `Ledora.consent(true)` on every page load. | Integration detail. | Documented in `sdk/README.md`. |

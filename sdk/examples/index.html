@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ledora SDK manual test</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+      button { margin: 0 .5rem .5rem 0; padding: .4rem .8rem; }
+      code { background: #f3f3f3; padding: 0 .25rem; }
+    </style>
+    <script>
+      // Optional: calls made before widget.js loads are queued and replayed after init.
+      window.Ledora = window.Ledora || [];
+      window.Ledora.push(['track', 'example loaded', { source: 'queued' }]);
+    </script>
+    <!--
+      Placeholder site key. Serve this folder's parent (sdk/) over http, e.g. `npx serve sdk`,
+      then open /examples/. Use data-ledora-api to point at a local API, or watch the
+      (failing) requests to the default API in DevTools → Network.
+    -->
+    <script src="../dist/v1/widget.js" data-ledora-site="ldr_XXXXXXXXXXXXXXXXXXXX" async></script>
+  </head>
+  <body>
+    <h1>Ledora SDK manual test</h1>
+    <p>Current path: <code id="path"></code></p>
+    <p>
+      <button id="track">Ledora.track('signup', { plan: 'pro' })</button>
+      <button id="track-invalid">Invalid event (warns)</button>
+    </p>
+    <p>
+      <button id="nav-pricing">pushState → /examples/pricing</button>
+      <button id="nav-docs">pushState → /examples/docs</button>
+      <button id="back">history.back()</button>
+    </p>
+    <p>
+      <button id="consent-yes">Ledora.consent(true)</button>
+      <button id="consent-no">Ledora.consent(false)</button>
+    </p>
+    <script>
+      const show = () => (document.getElementById('path').textContent = location.pathname);
+      show();
+      const on = (id, fn) => document.getElementById(id).addEventListener('click', fn);
+      on('track', () => Ledora.track('signup', { plan: 'pro', seats: 3 }));
+      on('track-invalid', () => Ledora.track('<bad name>', { nested: { no: true } }));
+      on('nav-pricing', () => { history.pushState({ page: 'pricing' }, '', '/examples/pricing'); show(); });
+      on('nav-docs', () => { history.pushState({ page: 'docs' }, '', '/examples/docs'); show(); });
+      on('back', () => history.back());
+      on('consent-yes', () => Ledora.consent(true));
+      on('consent-no', () => Ledora.consent(false));
+      window.addEventListener('popstate', show);
+    </script>
+  </body>
+</html>

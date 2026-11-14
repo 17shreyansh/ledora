@@ -16,6 +16,7 @@ export function publicRoutes(s: Services): Router {
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
     res.set('Access-Control-Max-Age', '86400');
+    res.set('Access-Control-Expose-Headers', 'Retry-After, RateLimit, RateLimit-Policy');
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('X-Content-Type-Options', 'nosniff');
     if (req.method === 'OPTIONS') return void res.status(204).end();

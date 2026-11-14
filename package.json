@@ -3,17 +3,18 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "Ledora — website analytics, engagement, lead generation and monitoring platform",
+  "description": "Ledora \u2014 website analytics, engagement, lead generation and monitoring platform",
   "workspaces": [
     "packages/shared",
     "server",
-    "apps/web"
+    "apps/web",
+    "sdk"
   ],
   "engines": {
     "node": ">=20.11"
   },
   "scripts": {
-    "build": "npm run build -w @ledora/shared && npm run build -w @ledora/server && npm run build -w @ledora/web",
+    "build": "npm run build -w @ledora/shared && npm run build -w @ledora/sdk && npm run build -w @ledora/server && npm run build -w @ledora/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "test": "npm run test --workspaces --if-present",
